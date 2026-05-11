@@ -28,6 +28,7 @@ class AIReviewer:
             if not settings.anthropic_api_key:
                 raise RuntimeError("ANTHROPIC_API_KEY is not configured")
             import anthropic
+
             self._client = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key)
         return self._client
 
@@ -65,13 +66,12 @@ class AIReviewer:
     def _build_prompt(pr_title: str, pr_body: str, diffs: list, cfg) -> str:
         focus = ", ".join(cfg.focus_areas)
         diff_text = "\n\n".join(
-            f"**{d['path']}**\n```diff\n{d['diff'][:2000]}\n```"
-            for d in diffs[:10]
+            f"**{d['path']}**\n```diff\n{d['diff'][:2000]}\n```" for d in diffs[:10]
         )
         return f"""Review this pull request.
 
 **Title:** {pr_title}
-**Description:** {pr_body or '(none)'}
+**Description:** {pr_body or "(none)"}
 **Focus areas:** {focus}
 **Max inline comments:** {cfg.max_comments}
 
@@ -96,13 +96,19 @@ Respond with JSON only:
     @staticmethod
     def _parse(text: str) -> dict[str, Any]:
         try:
-            clean = text.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
+            clean = (
+                text.strip()
+                .removeprefix("```json")
+                .removeprefix("```")
+                .removesuffix("```")
+                .strip()
+            )
             parsed = json.loads(clean)
             return {
                 "summary": str(parsed.get("summary", "")),
                 "verdict": parsed.get("verdict", "comment")
-                           if parsed.get("verdict") in ("approve", "request_changes", "comment")
-                           else "comment",
+                if parsed.get("verdict") in ("approve", "request_changes", "comment")
+                else "comment",
                 "score": max(0, min(100, int(parsed.get("score", 50)))),
                 "comments": [
                     {
@@ -110,8 +116,8 @@ Respond with JSON only:
                         "line": max(1, int(c.get("line", 1))),
                         "body": str(c.get("body", "")),
                         "severity": c.get("severity", "info")
-                                    if c.get("severity") in ("info", "warning", "error")
-                                    else "info",
+                        if c.get("severity") in ("info", "warning", "error")
+                        else "info",
                     }
                     for c in (parsed.get("comments") or [])[:20]
                     if c.get("path") and c.get("body")
@@ -119,4 +125,9 @@ Respond with JSON only:
             }
         except Exception as exc:
             log.warning("Failed to parse AI response: %s", exc)
-            return {"summary": text[:300], "verdict": "comment", "score": 50, "comments": []}
+            return {
+                "summary": text[:300],
+                "verdict": "comment",
+                "score": 50,
+                "comments": [],
+            }

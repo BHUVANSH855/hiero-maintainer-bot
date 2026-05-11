@@ -7,7 +7,9 @@ from app.workflows.issuemanagement import IssueManagementWorkflow
 
 
 def make_issue(number=1, updated_days_ago=65, labels=None, assignees=None, is_pr=False):
-    updated = (datetime.now(timezone.utc) - timedelta(days=updated_days_ago)).isoformat()
+    updated = (
+        datetime.now(timezone.utc) - timedelta(days=updated_days_ago)
+    ).isoformat()
     issue = {
         "number": number,
         "title": f"Issue #{number}",
@@ -32,9 +34,9 @@ async def test_marks_stale_after_cutoff(mock_gh, ctx):
 
 @pytest.mark.asyncio
 async def test_closes_after_stale_plus_close_period(mock_gh, ctx):
-    mock_gh.list_issues = AsyncMock(return_value=[
-        make_issue(updated_days_ago=68, labels=["stale"])
-    ])
+    mock_gh.list_issues = AsyncMock(
+        return_value=[make_issue(updated_days_ago=68, labels=["stale"])]
+    )
     wf = IssueManagementWorkflow(mock_gh)
     counts = await wf.run_stale_scan(ctx)
     assert counts["closed"] == 1
@@ -43,9 +45,9 @@ async def test_closes_after_stale_plus_close_period(mock_gh, ctx):
 
 @pytest.mark.asyncio
 async def test_skips_exempt_labels(mock_gh, ctx):
-    mock_gh.list_issues = AsyncMock(return_value=[
-        make_issue(updated_days_ago=90, labels=["pinned"])
-    ])
+    mock_gh.list_issues = AsyncMock(
+        return_value=[make_issue(updated_days_ago=90, labels=["pinned"])]
+    )
     wf = IssueManagementWorkflow(mock_gh)
     counts = await wf.run_stale_scan(ctx)
     assert counts["stale_marked"] == 0
@@ -54,9 +56,9 @@ async def test_skips_exempt_labels(mock_gh, ctx):
 
 @pytest.mark.asyncio
 async def test_skips_pull_requests(mock_gh, ctx):
-    mock_gh.list_issues = AsyncMock(return_value=[
-        make_issue(updated_days_ago=90, is_pr=True)
-    ])
+    mock_gh.list_issues = AsyncMock(
+        return_value=[make_issue(updated_days_ago=90, is_pr=True)]
+    )
     wf = IssueManagementWorkflow(mock_gh)
     counts = await wf.run_stale_scan(ctx)
     assert counts["stale_marked"] == 0
@@ -64,12 +66,14 @@ async def test_skips_pull_requests(mock_gh, ctx):
 
 @pytest.mark.asyncio
 async def test_auto_unassigns_inactive(mock_gh, ctx):
-    mock_gh.list_issues = AsyncMock(return_value=[
-        make_issue(updated_days_ago=20, assignees=["sleepy-dev"])
-    ])
-    mock_gh.get = AsyncMock(return_value={
-        "updated_at": (datetime.now(timezone.utc) - timedelta(days=20)).isoformat()
-    })
+    mock_gh.list_issues = AsyncMock(
+        return_value=[make_issue(updated_days_ago=20, assignees=["sleepy-dev"])]
+    )
+    mock_gh.get = AsyncMock(
+        return_value={
+            "updated_at": (datetime.now(timezone.utc) - timedelta(days=20)).isoformat()
+        }
+    )
     wf = IssueManagementWorkflow(mock_gh)
     counts = await wf.run_stale_scan(ctx)
     assert counts["unassigned"] == 1
@@ -98,6 +102,7 @@ async def test_no_action_within_stale_period(mock_gh, ctx):
 @pytest.mark.asyncio
 async def test_label_escalation_notifies_team(mock_gh, ctx):
     from app.config.schema import LabelEscalationRule
+
     ctx["config"].workflows.issue_management.label_escalation_rules = [
         LabelEscalationRule(label="security", notify_team="sec-team", after_hours=24)
     ]

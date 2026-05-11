@@ -27,14 +27,23 @@ async def test_raises_when_disabled():
 @pytest.mark.asyncio
 async def test_returns_parsed_review():
     mock_client = AsyncMock()
-    mock_client.messages.create = AsyncMock(return_value=make_response({
-        "summary": "Hardcoded credential found.",
-        "verdict": "request_changes",
-        "score": 35,
-        "comments": [
-            {"path": "src/auth.py", "line": 1, "body": "Never hardcode passwords.", "severity": "error"}
-        ],
-    }))
+    mock_client.messages.create = AsyncMock(
+        return_value=make_response(
+            {
+                "summary": "Hardcoded credential found.",
+                "verdict": "request_changes",
+                "score": 35,
+                "comments": [
+                    {
+                        "path": "src/auth.py",
+                        "line": 1,
+                        "body": "Never hardcode passwords.",
+                        "severity": "error",
+                    }
+                ],
+            }
+        )
+    )
     r = AIReviewer()
     r._client = mock_client
     result = await r.review(CFG, "feat: auth", "Adds login", DIFFS)
@@ -86,25 +95,44 @@ def test_parse_clamps_score():
 
 
 def test_parse_caps_comments_at_20():
-    many = [{"path": f"f{i}.py", "line": i+1, "body": "issue", "severity": "info"}
-            for i in range(30)]
+    many = [
+        {"path": f"f{i}.py", "line": i + 1, "body": "issue", "severity": "info"}
+        for i in range(30)
+    ]
     r = AIReviewer()
-    result = r._parse(json.dumps({
-        "summary": "many issues", "verdict": "request_changes",
-        "score": 20, "comments": many
-    }))
+    result = r._parse(
+        json.dumps(
+            {
+                "summary": "many issues",
+                "verdict": "request_changes",
+                "score": 20,
+                "comments": many,
+            }
+        )
+    )
     assert len(result["comments"]) <= 20
 
 
 def test_parse_filters_empty_comments():
     r = AIReviewer()
-    result = r._parse(json.dumps({
-        "summary": "ok", "verdict": "comment", "score": 50,
-        "comments": [
-            {"path": "", "line": 1, "body": "has no path", "severity": "info"},
-            {"path": "real.py", "line": 1, "body": "", "severity": "info"},
-            {"path": "real.py", "line": 2, "body": "valid comment", "severity": "warning"},
-        ]
-    }))
+    result = r._parse(
+        json.dumps(
+            {
+                "summary": "ok",
+                "verdict": "comment",
+                "score": 50,
+                "comments": [
+                    {"path": "", "line": 1, "body": "has no path", "severity": "info"},
+                    {"path": "real.py", "line": 1, "body": "", "severity": "info"},
+                    {
+                        "path": "real.py",
+                        "line": 2,
+                        "body": "valid comment",
+                        "severity": "warning",
+                    },
+                ],
+            }
+        )
+    )
     assert len(result["comments"]) == 1
     assert result["comments"][0]["body"] == "valid comment"

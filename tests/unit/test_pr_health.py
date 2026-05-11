@@ -24,13 +24,15 @@ def make_payload(pr=None):
 
 @pytest.mark.asyncio
 async def test_score_persisted_to_db(mock_gh, ctx):
-    mock_gh.list_pr_files = AsyncMock(return_value=[
-        {"filename": "src/foo.ts", "patch": "+const x = 1;"},
-        {"filename": "tests/foo.test.ts", "patch": "+it('works', () => {});"},
-    ])
-    mock_gh.get_combined_status = AsyncMock(return_value={
-        "statuses": [{"context": "DCO", "state": "success"}]
-    })
+    mock_gh.list_pr_files = AsyncMock(
+        return_value=[
+            {"filename": "src/foo.ts", "patch": "+const x = 1;"},
+            {"filename": "tests/foo.test.ts", "patch": "+it('works', () => {});"},
+        ]
+    )
+    mock_gh.get_combined_status = AsyncMock(
+        return_value={"statuses": [{"context": "DCO", "state": "success"}]}
+    )
     mock_gh.list_pr_reviews = AsyncMock(return_value=[{"state": "APPROVED"}])
 
     wf = PRHealthWorkflow(mock_gh)
@@ -38,6 +40,7 @@ async def test_score_persisted_to_db(mock_gh, ctx):
 
     from sqlalchemy import select
     from app.db.models import PRHealthScore
+
     result = await ctx["db"].execute(select(PRHealthScore))
     rows = result.scalars().all()
     assert len(rows) == 1
@@ -48,16 +51,18 @@ async def test_score_persisted_to_db(mock_gh, ctx):
 
 @pytest.mark.asyncio
 async def test_healthy_label_applied_for_high_score(mock_gh, ctx):
-    mock_gh.list_pr_files = AsyncMock(return_value=[
-        {"filename": "src/foo.ts", "patch": "+x"},
-        {"filename": "tests/foo.test.ts", "patch": "+it()"},
-    ])
-    mock_gh.get_combined_status = AsyncMock(return_value={
-        "statuses": [{"context": "DCO", "state": "success"}]
-    })
-    mock_gh.list_pr_reviews = AsyncMock(return_value=[
-        {"state": "APPROVED"}, {"state": "APPROVED"}
-    ])
+    mock_gh.list_pr_files = AsyncMock(
+        return_value=[
+            {"filename": "src/foo.ts", "patch": "+x"},
+            {"filename": "tests/foo.test.ts", "patch": "+it()"},
+        ]
+    )
+    mock_gh.get_combined_status = AsyncMock(
+        return_value={"statuses": [{"context": "DCO", "state": "success"}]}
+    )
+    mock_gh.list_pr_reviews = AsyncMock(
+        return_value=[{"state": "APPROVED"}, {"state": "APPROVED"}]
+    )
 
     wf = PRHealthWorkflow(mock_gh)
     await wf.score_pr(ctx, make_payload(make_pr(body="Closes #10")))
@@ -68,9 +73,9 @@ async def test_healthy_label_applied_for_high_score(mock_gh, ctx):
 
 @pytest.mark.asyncio
 async def test_low_score_posts_comment(mock_gh, ctx):
-    mock_gh.list_pr_files = AsyncMock(return_value=[
-        {"filename": "src/foo.ts", "patch": "+x"}
-    ])
+    mock_gh.list_pr_files = AsyncMock(
+        return_value=[{"filename": "src/foo.ts", "patch": "+x"}]
+    )
     mock_gh.get_combined_status = AsyncMock(return_value={"statuses": []})
     mock_gh.list_pr_reviews = AsyncMock(return_value=[])
 
@@ -84,16 +89,18 @@ async def test_low_score_posts_comment(mock_gh, ctx):
 
 @pytest.mark.asyncio
 async def test_no_comment_above_threshold(mock_gh, ctx):
-    mock_gh.list_pr_files = AsyncMock(return_value=[
-        {"filename": "src/x.ts", "patch": "+x"},
-        {"filename": "tests/x.test.ts", "patch": "+it()"},
-    ])
-    mock_gh.get_combined_status = AsyncMock(return_value={
-        "statuses": [{"context": "DCO", "state": "success"}]
-    })
-    mock_gh.list_pr_reviews = AsyncMock(return_value=[
-        {"state": "APPROVED"}, {"state": "APPROVED"}
-    ])
+    mock_gh.list_pr_files = AsyncMock(
+        return_value=[
+            {"filename": "src/x.ts", "patch": "+x"},
+            {"filename": "tests/x.test.ts", "patch": "+it()"},
+        ]
+    )
+    mock_gh.get_combined_status = AsyncMock(
+        return_value={"statuses": [{"context": "DCO", "state": "success"}]}
+    )
+    mock_gh.list_pr_reviews = AsyncMock(
+        return_value=[{"state": "APPROVED"}, {"state": "APPROVED"}]
+    )
 
     ctx["config"].workflows.pr_health.comment_threshold = 0  # never comment
     wf = PRHealthWorkflow(mock_gh)
@@ -135,19 +142,29 @@ def test_score_weights_sum_to_100():
 
 def test_compute_score_all_passing():
     signals = {
-        "has_tests": True, "has_linked_issue": True, "has_description": True,
-        "dco_signed": True, "review_count": 2, "small_diff": True,
+        "has_tests": True,
+        "has_linked_issue": True,
+        "has_description": True,
+        "dco_signed": True,
+        "review_count": 2,
+        "small_diff": True,
     }
     from app.config.schema import PRHealthConfig
+
     score = PRHealthWorkflow._compute_score(signals, PRHealthConfig().score_weights)
     assert score == 100.0
 
 
 def test_compute_score_all_failing():
     signals = {
-        "has_tests": False, "has_linked_issue": False, "has_description": False,
-        "dco_signed": False, "review_count": 0, "small_diff": False,
+        "has_tests": False,
+        "has_linked_issue": False,
+        "has_description": False,
+        "dco_signed": False,
+        "review_count": 0,
+        "small_diff": False,
     }
     from app.config.schema import PRHealthConfig
+
     score = PRHealthWorkflow._compute_score(signals, PRHealthConfig().score_weights)
     assert score == 0.0

@@ -12,19 +12,21 @@ class AuditLog(Base):
     __tablename__ = "audit_logs"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    timestamp: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+    timestamp: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow, index=True
+    )
     action: Mapped[str] = mapped_column(String(64), index=True)
     owner: Mapped[str] = mapped_column(String(128), index=True)
     repo: Mapped[str] = mapped_column(String(128), index=True)
     actor: Mapped[str] = mapped_column(String(64), default="hiero-bot")
     target_number: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
-    target_login: Mapped[Optional[str]] = mapped_column(String(128), nullable=True, index=True)
+    target_login: Mapped[Optional[str]] = mapped_column(
+        String(128), nullable=True, index=True
+    )
     reason: Mapped[str] = mapped_column(Text)
     metadata_json: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
 
-    __table_args__ = (
-        Index("ix_audit_owner_repo", "owner", "repo"),
-    )
+    __table_args__ = (Index("ix_audit_owner_repo", "owner", "repo"),)
 
 
 class PRHealthScore(Base):
@@ -45,9 +47,7 @@ class PRHealthScore(Base):
     files_changed: Mapped[int] = mapped_column(Integer, default=0)
     label_applied: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
 
-    __table_args__ = (
-        Index("ix_pr_health_owner_repo", "owner", "repo"),
-    )
+    __table_args__ = (Index("ix_pr_health_owner_repo", "owner", "repo"),)
 
 
 class ContributorSnapshot(Base):
@@ -73,12 +73,12 @@ class StaleActionLog(Base):
     owner: Mapped[str] = mapped_column(String(128))
     repo: Mapped[str] = mapped_column(String(128))
     issue_number: Mapped[int] = mapped_column(Integer)
-    action: Mapped[str] = mapped_column(String(32))   # marked_stale | closed | unassigned
+    action: Mapped[str] = mapped_column(
+        String(32)
+    )  # marked_stale | closed | unassigned
     days_inactive: Mapped[int] = mapped_column(Integer)
 
-    __table_args__ = (
-        Index("ix_stale_owner_repo", "owner", "repo"),
-    )
+    __table_args__ = (Index("ix_stale_owner_repo", "owner", "repo"),)
 
 
 class ReviewerRecommendation(Base):

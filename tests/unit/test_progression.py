@@ -23,11 +23,17 @@ def all_comments(mock_gh):
 @pytest.mark.asyncio
 async def test_recommends_issues_after_merge(mock_gh, ctx):
     stats = {"merged_prs": 3, "reviews_given": 2, "months_active": 1, "login": "alice"}
-    mock_gh.list_issues = AsyncMock(return_value=[
-        {"number": 10, "title": "Fix X",
-         "html_url": "https://github.com/hiero/sdk/issues/10",
-         "assignees": [], "pull_request": None},
-    ])
+    mock_gh.list_issues = AsyncMock(
+        return_value=[
+            {
+                "number": 10,
+                "title": "Fix X",
+                "html_url": "https://github.com/hiero/sdk/issues/10",
+                "assignees": [],
+                "pull_request": None,
+            },
+        ]
+    )
     wf = ProgressionWorkflow(mock_gh)
     with patch.object(wf, "_collect_stats", AsyncMock(return_value=stats)):
         await wf.handle_merged_pr(ctx, merged_pr_payload())
@@ -62,16 +68,19 @@ async def test_no_milestone_for_non_milestone_count(mock_gh, ctx):
     with patch.object(wf, "_collect_stats", AsyncMock(return_value=stats)):
         await wf.handle_merged_pr(ctx, merged_pr_payload())
     comments = all_comments(mock_gh)
-    milestone_comments = [c for c in comments if any(e in c for e in ["🎊", "🌟", "🚀", "💎", "🏆"])]
+    milestone_comments = [
+        c for c in comments if any(e in c for e in ["🎊", "🌟", "🚀", "💎", "🏆"])
+    ]
     assert len(milestone_comments) == 0
 
 
 @pytest.mark.asyncio
 async def test_skips_when_not_merged(mock_gh, ctx):
     wf = ProgressionWorkflow(mock_gh)
-    await wf.handle_merged_pr(ctx, {
-        "pull_request": {"number": 1, "user": {"login": "alice"}, "merged_at": None}
-    })
+    await wf.handle_merged_pr(
+        ctx,
+        {"pull_request": {"number": 1, "user": {"login": "alice"}, "merged_at": None}},
+    )
     mock_gh.post_comment.assert_not_awaited()
 
 
@@ -119,31 +128,47 @@ async def test_no_issue_recommendations_when_disabled(mock_gh, ctx):
 
 def test_check_eligibility_not_eligible():
     from app.config.schema import ProgressionConfig
+
     cfg = ProgressionConfig()
-    assert ProgressionWorkflow._check_eligibility(
-        {"merged_prs": 1, "reviews_given": 0, "months_active": 0}, cfg
-    ) is None
+    assert (
+        ProgressionWorkflow._check_eligibility(
+            {"merged_prs": 1, "reviews_given": 0, "months_active": 0}, cfg
+        )
+        is None
+    )
 
 
 def test_check_eligibility_junior_committer():
     from app.config.schema import ProgressionConfig
+
     cfg = ProgressionConfig()
-    assert ProgressionWorkflow._check_eligibility(
-        {"merged_prs": 5, "reviews_given": 3, "months_active": 2}, cfg
-    ) == "junior-committer"
+    assert (
+        ProgressionWorkflow._check_eligibility(
+            {"merged_prs": 5, "reviews_given": 3, "months_active": 2}, cfg
+        )
+        == "junior-committer"
+    )
 
 
 def test_check_eligibility_committer():
     from app.config.schema import ProgressionConfig
+
     cfg = ProgressionConfig()
-    assert ProgressionWorkflow._check_eligibility(
-        {"merged_prs": 20, "reviews_given": 12, "months_active": 8}, cfg
-    ) == "committer"
+    assert (
+        ProgressionWorkflow._check_eligibility(
+            {"merged_prs": 20, "reviews_given": 12, "months_active": 8}, cfg
+        )
+        == "committer"
+    )
 
 
 def test_check_eligibility_maintainer():
     from app.config.schema import ProgressionConfig
+
     cfg = ProgressionConfig()
-    assert ProgressionWorkflow._check_eligibility(
-        {"merged_prs": 55, "reviews_given": 35, "months_active": 14}, cfg
-    ) == "maintainer"
+    assert (
+        ProgressionWorkflow._check_eligibility(
+            {"merged_prs": 55, "reviews_given": 35, "months_active": 14}, cfg
+        )
+        == "maintainer"
+    )

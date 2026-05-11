@@ -59,17 +59,17 @@ class WebhookRouter:
             return {"ok": True, "skipped": "no config"}
 
         ctx = dict(
-            owner=owner, repo=repo,
+            owner=owner,
+            repo=repo,
             installation_id=installation_id,
-            config=config, db=db,
+            config=config,
+            db=db,
         )
 
         await self._dispatch(event, payload, ctx)
         return {"ok": True}
 
-    async def _dispatch(
-        self, event: str, payload: dict, ctx: dict
-    ) -> None:
+    async def _dispatch(self, event: str, payload: dict, ctx: dict) -> None:
         action = payload.get("action", "")
         owner, repo = ctx["owner"], ctx["repo"]
 
@@ -89,8 +89,10 @@ class WebhookRouter:
             elif event == "push":
                 # Invalidate config cache if bot config changed
                 commits = payload.get("commits", [])
-                if any(".github/hiero-bot.yml" in (c.get("modified") or [])
-                       for c in commits):
+                if any(
+                    ".github/hiero-bot.yml" in (c.get("modified") or [])
+                    for c in commits
+                ):
                     self._config_loader.invalidate(owner, repo)
                     log.info("Config cache invalidated for %s/%s", owner, repo)
 
@@ -98,10 +100,16 @@ class WebhookRouter:
                 log.debug("No handler for event=%s", event)
 
         except Exception as exc:
-            log.error("Error in %s handler for %s/%s: %s", event, owner, repo, exc,
-                      exc_info=True)
+            log.error(
+                "Error in %s handler for %s/%s: %s",
+                event,
+                owner,
+                repo,
+                exc,
+                exc_info=True,
+            )
 
-    #  Event handlers 
+    #  Event handlers
 
     async def _handle_issues(self, action: str, payload: dict, ctx: dict) -> None:
         wf_onboard = OnboardingWorkflow(self._gh)
@@ -128,11 +136,9 @@ class WebhookRouter:
         elif action == "closed" and pr.get("merged"):
             await wf_prog.handle_merged_pr(ctx, payload)
 
-    #  Slash commands 
+    #  Slash commands
 
-    async def _handle_slash_command(
-        self, body: str, payload: dict, ctx: dict
-    ) -> None:
+    async def _handle_slash_command(self, body: str, payload: dict, ctx: dict) -> None:
         parts = body.strip().split()
         command = parts[0].lower()
         args = parts[1:]
@@ -151,13 +157,18 @@ class WebhookRouter:
         elif command == "/unassign":
             if issue_number and commenter:
                 await gh.remove_assignees(
-                    ctx["owner"], ctx["repo"], issue_number,
-                    [commenter], ctx["installation_id"]
+                    ctx["owner"],
+                    ctx["repo"],
+                    issue_number,
+                    [commenter],
+                    ctx["installation_id"],
                 )
                 await gh.post_comment(
-                    ctx["owner"], ctx["repo"], issue_number,
+                    ctx["owner"],
+                    ctx["repo"],
+                    issue_number,
                     f"✅ @{commenter} removed from this issue.",
-                    ctx["installation_id"]
+                    ctx["installation_id"],
                 )
 
         elif command == "/check-eligibility":
@@ -166,8 +177,11 @@ class WebhookRouter:
         elif command == "/help":
             if issue_number:
                 await gh.post_comment(
-                    ctx["owner"], ctx["repo"], issue_number,
-                    HELP_TEXT, ctx["installation_id"]
+                    ctx["owner"],
+                    ctx["repo"],
+                    issue_number,
+                    HELP_TEXT,
+                    ctx["installation_id"],
                 )
 
         elif command == "/label" and args:
@@ -197,15 +211,19 @@ class WebhookRouter:
 
         if not allowed:
             await self._gh.post_comment(
-                ctx["owner"], ctx["repo"], issue_number,
+                ctx["owner"],
+                ctx["repo"],
+                issue_number,
                 f"⛔ @{commenter} — only committers and maintainers can add labels via `/label`.",
-                inst
+                inst,
             )
             return
 
-        await self._gh.add_label(ctx["owner"], ctx["repo"], issue_number, label_name, inst)
+        await self._gh.add_label(
+            ctx["owner"], ctx["repo"], issue_number, label_name, inst
+        )
 
-    #  Signature verification 
+    #  Signature verification
 
     @staticmethod
     def _verify_signature(request: Request, body: bytes) -> None:
@@ -213,11 +231,14 @@ class WebhookRouter:
         if not sig_header:
             raise HTTPException(status_code=401, detail="Missing signature")
 
-        expected = "sha256=" + hmac.new(
-            settings.github_webhook_secret.encode(),
-            body,
-            hashlib.sha256,
-        ).hexdigest()
+        expected = (
+            "sha256="
+            + hmac.new(
+                settings.github_webhook_secret.encode(),
+                body,
+                hashlib.sha256,
+            ).hexdigest()
+        )
 
         if not hmac.compare_digest(sig_header, expected):
             raise HTTPException(status_code=401, detail="Invalid signature")

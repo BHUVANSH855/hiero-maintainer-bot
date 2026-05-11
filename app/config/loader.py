@@ -3,7 +3,7 @@
 from __future__ import annotations
 import base64
 import time
-from typing import Optional
+from typing import Any, Optional
 import yaml
 from pydantic import ValidationError
 from app.config.schema import RepoConfig
@@ -14,14 +14,15 @@ log = get_logger("config.loader")
 _CONFIG_PATH = ".github/hiero-bot.yml"
 _CACHE_TTL = 300  # 5 minutes
 
-from typing import Any
 
 class ConfigLoader:
     def __init__(self, github_client: Any) -> None:
         self._client = github_client
         self._cache: dict[str, tuple[RepoConfig, float]] = {}
 
-    async def load(self, owner: str, repo: str, installation_id: int = 0) -> Optional[RepoConfig]:
+    async def load(
+        self, owner: str, repo: str, installation_id: int = 0
+    ) -> Optional[RepoConfig]:
         """Load config, using cache if fresh. Returns None if no config file."""
         key = f"{owner}/{repo}"
         if key in self._cache:
@@ -30,7 +31,9 @@ class ConfigLoader:
                 return config
 
         try:
-            raw_b64 = await self._client.get_file_content(owner, repo, _CONFIG_PATH, installation_id)
+            raw_b64 = await self._client.get_file_content(
+                owner, repo, _CONFIG_PATH, installation_id
+            )
             if raw_b64 is None:
                 return None
 

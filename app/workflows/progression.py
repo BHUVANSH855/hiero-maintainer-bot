@@ -42,19 +42,23 @@ class ProgressionWorkflow:
         # Milestone celebration
         if cfg.celebrate_milestones and stats["merged_prs"] in MILESTONES:
             msg = MILESTONES[stats["merged_prs"]]
-            await self._gh.post_comment(owner, repo, pr_number,
-                                        f"@{login} {msg}", inst)
+            await self._gh.post_comment(owner, repo, pr_number, f"@{login} {msg}", inst)
 
         # Recommend next issues
         if cfg.recommend_issues_after_merge:
-            await self._recommend_issues(ctx, pr_number, login, cfg.recommendation_count)
+            await self._recommend_issues(
+                ctx, pr_number, login, cfg.recommendation_count
+            )
 
         # Check & announce role eligibility
         eligible_for = self._check_eligibility(stats, cfg)
         if eligible_for:
             await self._gh.post_comment(
-                owner, repo, pr_number,
-                self._build_eligibility_notice(login, eligible_for), inst,
+                owner,
+                repo,
+                pr_number,
+                self._build_eligibility_notice(login, eligible_for),
+                inst,
             )
 
         # Persist contributor snapshot
@@ -71,8 +75,12 @@ class ProgressionWorkflow:
         db.add(snapshot)
 
         await audit.record(
-            db, action="contributor.role_suggested" if eligible_for else "workflow.skipped",
-            owner=owner, repo=repo, target_login=login, target_number=pr_number,
+            db,
+            action="contributor.role_suggested" if eligible_for else "workflow.skipped",
+            owner=owner,
+            repo=repo,
+            target_login=login,
+            target_number=pr_number,
             reason=f"Post-merge check: eligible_for={eligible_for}",
             metadata=stats,
         )
@@ -95,8 +103,12 @@ class ProgressionWorkflow:
         await self._gh.post_comment(owner, repo, issue_number, report, inst)
 
         await audit.record(
-            ctx["db"], action="contributor.role_suggested",
-            owner=owner, repo=repo, target_login=login, target_number=issue_number,
+            ctx["db"],
+            action="contributor.role_suggested",
+            owner=owner,
+            repo=repo,
+            target_login=login,
+            target_number=issue_number,
             reason="User invoked /check-eligibility",
             metadata=stats,
         )
@@ -114,11 +126,15 @@ class ProgressionWorkflow:
 
         try:
             prs = await self._gh.get(
-                f"/repos/{owner}/{repo}/pulls", inst,
-                params={"state": "closed", "per_page": 100}
+                f"/repos/{owner}/{repo}/pulls",
+                inst,
+                params={"state": "closed", "per_page": 100},
             )
-            merged = [p for p in (prs or [])
-                      if p.get("user", {}).get("login") == login and p.get("merged_at")]
+            merged = [
+                p
+                for p in (prs or [])
+                if p.get("user", {}).get("login") == login and p.get("merged_at")
+            ]
             merged_prs = len(merged)
             if merged:
                 dates = [
@@ -131,20 +147,20 @@ class ProgressionWorkflow:
 
         try:
             review_comments = await self._gh.get(
-                f"/repos/{owner}/{repo}/pulls/comments", inst,
-                params={"per_page": 100}
+                f"/repos/{owner}/{repo}/pulls/comments", inst, params={"per_page": 100}
             )
             reviews_given = sum(
-                1 for c in (review_comments or [])
+                1
+                for c in (review_comments or [])
                 if (c.get("user") or {}).get("login") == login
             )
         except Exception:
             pass
 
         if first_contribution:
-            months_active = max(0, int(
-                (datetime.now(timezone.utc) - first_contribution).days / 30
-            ))
+            months_active = max(
+                0, int((datetime.now(timezone.utc) - first_contribution).days / 30)
+            )
 
         return {
             "merged_prs": merged_prs,
@@ -161,9 +177,11 @@ class ProgressionWorkflow:
             ("committer", cfg.requirements_for_committer),
             ("junior-committer", cfg.requirements_for_junior_committer),
         ]:
-            if (stats["merged_prs"] >= reqs.min_merged_prs
-                    and stats["reviews_given"] >= reqs.min_reviews_given
-                    and stats["months_active"] >= reqs.min_months_active):
+            if (
+                stats["merged_prs"] >= reqs.min_merged_prs
+                and stats["reviews_given"] >= reqs.min_reviews_given
+                and stats["months_active"] >= reqs.min_months_active
+            ):
                 return role
         return None
 
@@ -183,25 +201,31 @@ class ProgressionWorkflow:
             if stats["merged_prs"] < reqs.min_merged_prs:
                 missing.append(f"{reqs.min_merged_prs - stats['merged_prs']} more PRs")
             if stats["reviews_given"] < reqs.min_reviews_given:
-                missing.append(f"{reqs.min_reviews_given - stats['reviews_given']} more reviews")
+                missing.append(
+                    f"{reqs.min_reviews_given - stats['reviews_given']} more reviews"
+                )
             if stats["months_active"] < reqs.min_months_active:
-                missing.append(f"{reqs.min_months_active - stats['months_active']} more months")
+                missing.append(
+                    f"{reqs.min_months_active - stats['months_active']} more months"
+                )
             eligible = len(missing) == 0
             detail = "Meets all requirements!" if eligible else "; ".join(missing)
             return f"| **{role}** | {'✅ Eligible' if eligible else '⏳ Not yet'} | {detail} |"
 
-        rows = "\n".join([
-            row("junior-committer", cfg.requirements_for_junior_committer),
-            row("committer", cfg.requirements_for_committer),
-            row("maintainer", cfg.requirements_for_maintainer),
-        ])
+        rows = "\n".join(
+            [
+                row("junior-committer", cfg.requirements_for_junior_committer),
+                row("committer", cfg.requirements_for_committer),
+                row("maintainer", cfg.requirements_for_maintainer),
+            ]
+        )
 
         return f"""## 📊 Progression Report for @{login}
 
 **Your stats in this repo:**
-- 📦 Merged PRs: **{stats['merged_prs']}**
-- 👀 Reviews given: **{stats['reviews_given']}**
-- 📅 Months active: **{stats['months_active']}**
+- 📦 Merged PRs: **{stats["merged_prs"]}**
+- 👀 Reviews given: **{stats["reviews_given"]}**
+- 📅 Months active: **{stats["months_active"]}**
 
 **Role eligibility:**
 
@@ -218,8 +242,7 @@ class ProgressionWorkflow:
         label = ctx["config"].difficulty_labels.intermediate
         try:
             issues = await self._gh.list_issues(
-                owner, repo, inst,
-                state="open", labels=label, assignee="none"
+                owner, repo, inst, state="open", labels=label, assignee="none"
             )
             issues = [i for i in issues if not i.get("pull_request")][:count]
             if not issues:
@@ -228,7 +251,9 @@ class ProgressionWorkflow:
                 f"- [#{i['number']} — {i['title']}]({i['html_url']})" for i in issues
             )
             await self._gh.post_comment(
-                owner, repo, pr_number,
+                owner,
+                repo,
+                pr_number,
                 f"🎉 Great work @{login}! Here are some suggested next issues:\n\n"
                 f"{issue_list}\n\nUse `/assign` to pick one up!",
                 inst,

@@ -64,6 +64,7 @@ app.include_router(api_router)
 
 # ── Webhook endpoint ──────────────────────────────────────────
 
+
 @app.post("/webhook")
 async def webhook(request: Request, db: AsyncSession = Depends(get_db)):
     assert _config_loader and _gh, "App not initialized"
@@ -73,12 +74,14 @@ async def webhook(request: Request, db: AsyncSession = Depends(get_db)):
 
 # ── Dashboard ─────────────────────────────────────────────────
 
+
 @app.get("/", response_class=HTMLResponse)
 async def dashboard(request: Request):
     return templates.TemplateResponse("dashboard.html", {"request": request})
 
 
 # ── Health ────────────────────────────────────────────────────
+
 
 @app.get("/healthz")
 async def healthz():

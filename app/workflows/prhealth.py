@@ -34,7 +34,9 @@ class PRHealthWorkflow:
         files = await self._gh.list_pr_files(owner, repo, pr_number, inst)
         reviews = await self._gh.list_pr_reviews(owner, repo, pr_number, inst)
         sha = pr.get("head", {}).get("sha", "")
-        status_data = await self._gh.get_combined_status(owner, repo, sha, inst) if sha else {}
+        status_data = (
+            await self._gh.get_combined_status(owner, repo, sha, inst) if sha else {}
+        )
 
         signals = self._compute_signals(pr, files, reviews, status_data)
         score = self._compute_score(signals, cfg.score_weights)
@@ -64,14 +66,20 @@ class PRHealthWorkflow:
         # Comment if score is below threshold
         if score < cfg.comment_threshold:
             await self._gh.post_comment(
-                owner, repo, pr_number,
+                owner,
+                repo,
+                pr_number,
                 self._build_health_comment(score, signals, cfg.label_healthy_above),
                 inst,
             )
 
         await audit.record(
-            db, action="pr.health_scored", owner=owner, repo=repo,
-            target_number=pr_number, target_login=author,
+            db,
+            action="pr.health_scored",
+            owner=owner,
+            repo=repo,
+            target_number=pr_number,
+            target_login=author,
             reason=f"PR health score: {score:.0f}/100",
             metadata={"score": round(score, 1), "signals": signals},
         )
@@ -85,9 +93,16 @@ class PRHealthWorkflow:
         pr: dict, files: list[dict], reviews: list[dict], status: dict
     ) -> dict:
         body = pr.get("body") or ""
-        test_re = [re.compile(p) for p in
-                   [r"\.test\.[jt]sx?$", r"\.spec\.[jt]sx?$",
-                    r"tests?/", r"test_.*\.py$", r".*_test\.py$"]]
+        test_re = [
+            re.compile(p)
+            for p in [
+                r"\.test\.[jt]sx?$",
+                r"\.spec\.[jt]sx?$",
+                r"tests?/",
+                r"test_.*\.py$",
+                r".*_test\.py$",
+            ]
+        ]
 
         statuses = status.get("statuses", [])
         dco_ok = any(
@@ -120,7 +135,9 @@ class PRHealthWorkflow:
         return min(max(score, 0), 100)
 
     @staticmethod
-    def _build_health_comment(score: float, signals: dict, healthy_threshold: int) -> str:
+    def _build_health_comment(
+        score: float, signals: dict, healthy_threshold: int
+    ) -> str:
         emoji = "🔴" if score < 50 else "🟡"
         rows = []
         labels = {
@@ -153,7 +170,9 @@ Improving these signals will help reviewers engage faster and raise your score. 
     # ── Dashboard query ────────────────────────────────────────
 
     @staticmethod
-    async def get_recent_scores(db: AsyncSession, owner: str, repo: str, limit: int = 20):
+    async def get_recent_scores(
+        db: AsyncSession, owner: str, repo: str, limit: int = 20
+    ):
         result = await db.execute(
             select(PRHealthScore)
             .where(PRHealthScore.owner == owner, PRHealthScore.repo == repo)
@@ -165,9 +184,11 @@ Improving these signals will help reviewers engage faster and raise your score. 
     @staticmethod
     async def get_average_score(db: AsyncSession, owner: str, repo: str) -> float:
         from sqlalchemy import func
+
         result = await db.execute(
-            select(func.avg(PRHealthScore.score))
-            .where(PRHealthScore.owner == owner, PRHealthScore.repo == repo)
+            select(func.avg(PRHealthScore.score)).where(
+                PRHealthScore.owner == owner, PRHealthScore.repo == repo
+            )
         )
         avg = result.scalar()
         return round(float(avg), 1) if avg else 0.0

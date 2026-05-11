@@ -32,12 +32,14 @@ def mock_gh():
     gh.list_pr_commits = AsyncMock(return_value=[])
     gh.list_pr_reviews = AsyncMock(return_value=[])
     gh.get_combined_status = AsyncMock(return_value={"statuses": []})
-    gh.get_user = AsyncMock(return_value={
-        "login": "alice",
-        "type": "User",
-        "created_at": "2020-01-01T00:00:00Z",
-        "public_repos": 10,
-    })
+    gh.get_user = AsyncMock(
+        return_value={
+            "login": "alice",
+            "type": "User",
+            "created_at": "2020-01-01T00:00:00Z",
+            "public_repos": 10,
+        }
+    )
     gh.list_team_members = AsyncMock(return_value=[{"login": "mentor1"}])
     gh.get = AsyncMock(return_value=[])
     return gh
@@ -45,48 +47,56 @@ def mock_gh():
 
 @pytest.fixture
 def base_config():
-    return RepoConfig.model_validate({
-        "repo": "hiero/sdk-js",
-        "workflows": {
-            "onboarding": {
-                "enabled": True,
-                "check_human_contributors": True,
-                "minimum_account_age_days": 0,
-                "minimum_public_contributions": 0,
-                "auto_assign_mentor": False,
-                "mentor_assignment_strategy": "round-robin",
-            },
-            "pull_request": {"enabled": True},
-            "progression": {
-                "enabled": True,
-                "recommend_issues_after_merge": True,
-                "recommendation_count": 3,
-                "requirements_for_junior_committer": {
-                    "min_merged_prs": 3, "min_reviews_given": 2,
-                    "min_months_active": 1, "require_endorsement_from": "committer"
+    return RepoConfig.model_validate(
+        {
+            "repo": "hiero/sdk-js",
+            "workflows": {
+                "onboarding": {
+                    "enabled": True,
+                    "check_human_contributors": True,
+                    "minimum_account_age_days": 0,
+                    "minimum_public_contributions": 0,
+                    "auto_assign_mentor": False,
+                    "mentor_assignment_strategy": "round-robin",
                 },
-                "requirements_for_committer": {
-                    "min_merged_prs": 15, "min_reviews_given": 10,
-                    "min_months_active": 6, "require_endorsement_from": "maintainer"
+                "pull_request": {"enabled": True},
+                "progression": {
+                    "enabled": True,
+                    "recommend_issues_after_merge": True,
+                    "recommendation_count": 3,
+                    "requirements_for_junior_committer": {
+                        "min_merged_prs": 3,
+                        "min_reviews_given": 2,
+                        "min_months_active": 1,
+                        "require_endorsement_from": "committer",
+                    },
+                    "requirements_for_committer": {
+                        "min_merged_prs": 15,
+                        "min_reviews_given": 10,
+                        "min_months_active": 6,
+                        "require_endorsement_from": "maintainer",
+                    },
+                    "requirements_for_maintainer": {
+                        "min_merged_prs": 50,
+                        "min_reviews_given": 30,
+                        "min_months_active": 12,
+                        "require_endorsement_from": "maintainer",
+                    },
+                    "celebrate_milestones": True,
                 },
-                "requirements_for_maintainer": {
-                    "min_merged_prs": 50, "min_reviews_given": 30,
-                    "min_months_active": 12, "require_endorsement_from": "maintainer"
+                "issue_management": {
+                    "enabled": True,
+                    "stale_issue_days": 60,
+                    "close_stale_after_days": 7,
+                    "stale_label": "stale",
+                    "exempt_labels": ["pinned", "security"],
+                    "auto_unassign_inactive_days": 14,
+                    "label_escalation_rules": [],
                 },
-                "celebrate_milestones": True,
+                "pr_health": {"enabled": True},
             },
-            "issue_management": {
-                "enabled": True,
-                "stale_issue_days": 60,
-                "close_stale_after_days": 7,
-                "stale_label": "stale",
-                "exempt_labels": ["pinned", "security"],
-                "auto_unassign_inactive_days": 14,
-                "label_escalation_rules": [],
-            },
-            "pr_health": {"enabled": True},
         }
-    })
+    )
 
 
 @pytest.fixture

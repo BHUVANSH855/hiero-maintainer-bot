@@ -2,7 +2,7 @@
 # Hiero Maintainer Bot v2 — Repository Configuration
 # Add this file to any repo where the bot is installed.
 # Every workflow section is optional; omit what you don't need.
-# 
+#
 
 repo: "hiero/your-repo"
 
@@ -19,7 +19,7 @@ teams:
 
 workflows:
 
-  #  Onboarding 
+  #  Onboarding
   onboarding:
     enabled: true
     check_human_contributors: true
@@ -98,7 +98,7 @@ workflows:
       min_months_active: 12
       require_endorsement_from: maintainer
 
-  # Issue Management 
+  # Issue Management
   issue_management:
     enabled: true
     stale_issue_days: 60

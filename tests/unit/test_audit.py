@@ -9,8 +9,13 @@ from app.db.models import AuditLog
 @pytest.mark.asyncio
 async def test_record_creates_db_entry(db):
     await record(
-        db, action="issue.assigned", owner="hiero", repo="sdk-js",
-        target_number=42, target_login="alice", reason="Self-assigned"
+        db,
+        action="issue.assigned",
+        owner="hiero",
+        repo="sdk-js",
+        target_number=42,
+        target_login="alice",
+        reason="Self-assigned",
     )
     await db.commit()
     result = await db.execute(select(AuditLog))
@@ -25,8 +30,12 @@ async def test_record_creates_db_entry(db):
 @pytest.mark.asyncio
 async def test_record_stores_metadata(db):
     await record(
-        db, action="pr.reviewed", owner="hiero", repo="sdk",
-        reason="AI review", metadata={"score": 85, "verdict": "approve"}
+        db,
+        action="pr.reviewed",
+        owner="hiero",
+        repo="sdk",
+        reason="AI review",
+        metadata={"score": 85, "verdict": "approve"},
     )
     await db.commit()
     result = await db.execute(select(AuditLog))
@@ -53,6 +62,7 @@ async def test_multiple_records_stored(db):
 @pytest.mark.asyncio
 async def test_timestamp_set_automatically(db):
     from datetime import datetime
+
     before = datetime.utcnow()
     await record(db, action="issue.assigned", owner="o", repo="r", reason="t")
     await db.commit()

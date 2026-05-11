@@ -17,6 +17,7 @@ router = APIRouter(prefix="/api/v1", tags=["API"])
 
 # Response schemas
 
+
 class AuditEntry(BaseModel):
     id: int
     timestamp: datetime
@@ -78,14 +79,16 @@ class RepoStats(BaseModel):
     total_audit_events: int
 
 
-#Health
+# Health
+
 
 @router.get("/health")
 async def health():
     return {"status": "ok", "service": "hiero-maintainer-bot"}
 
 
-#Audit log 
+# Audit log
+
 
 @router.get("/audit", response_model=list[AuditEntry])
 async def get_audit_log(
@@ -115,16 +118,23 @@ async def get_audit_log(
     rows = result.scalars().all()
     return [
         AuditEntry(
-            id=r.id, timestamp=r.timestamp, action=r.action,
-            owner=r.owner, repo=r.repo, actor=r.actor,
-            target_number=r.target_number, target_login=r.target_login,
-            reason=r.reason, metadata=r.metadata_json,
+            id=r.id,
+            timestamp=r.timestamp,
+            action=r.action,
+            owner=r.owner,
+            repo=r.repo,
+            actor=r.actor,
+            target_number=r.target_number,
+            target_login=r.target_login,
+            reason=r.reason,
+            metadata=r.metadata_json,
         )
         for r in rows
     ]
 
 
 # PR Health
+
 
 @router.get("/pr-health", response_model=list[PRHealthEntry])
 async def get_pr_health(
@@ -177,7 +187,8 @@ async def get_pr_health_stats(
     }
 
 
-# Contributors 
+# Contributors
+
 
 @router.get("/contributors", response_model=list[ContributorEntry])
 async def get_contributors(
@@ -202,7 +213,8 @@ async def get_contributors(
     return result.scalars().all()
 
 
-# Repo stats 
+# Repo stats
+
 
 @router.get("/repos/stats", response_model=RepoStats)
 async def get_repo_stats(
@@ -218,8 +230,9 @@ async def get_repo_stats(
         return r.scalar() or 0
 
     avg_result = await db.execute(
-        select(func.avg(PRHealthScore.score))
-        .where(PRHealthScore.owner == owner, PRHealthScore.repo == repo)
+        select(func.avg(PRHealthScore.score)).where(
+            PRHealthScore.owner == owner, PRHealthScore.repo == repo
+        )
     )
     avg_score = float(avg_result.scalar() or 0)
 
@@ -228,15 +241,24 @@ async def get_repo_stats(
         repo=repo,
         avg_pr_health_score=round(avg_score, 1),
         total_prs_scored=await count(PRHealthScore, owner=owner, repo=repo),
-        total_stale_marked=await count(StaleActionLog, owner=owner, repo=repo, action="marked_stale"),
-        total_stale_closed=await count(StaleActionLog, owner=owner, repo=repo, action="closed"),
-        total_auto_unassigned=await count(StaleActionLog, owner=owner, repo=repo, action="unassigned"),
-        total_contributors_welcomed=await count(AuditLog, owner=owner, repo=repo, action="contributor.welcomed"),
+        total_stale_marked=await count(
+            StaleActionLog, owner=owner, repo=repo, action="marked_stale"
+        ),
+        total_stale_closed=await count(
+            StaleActionLog, owner=owner, repo=repo, action="closed"
+        ),
+        total_auto_unassigned=await count(
+            StaleActionLog, owner=owner, repo=repo, action="unassigned"
+        ),
+        total_contributors_welcomed=await count(
+            AuditLog, owner=owner, repo=repo, action="contributor.welcomed"
+        ),
         total_audit_events=await count(AuditLog, owner=owner, repo=repo),
     )
 
 
-# Stale log 
+# Stale log
+
 
 @router.get("/stale-log")
 async def get_stale_log(

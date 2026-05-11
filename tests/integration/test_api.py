@@ -23,7 +23,9 @@ async def test_db():
 @pytest_asyncio.fixture
 async def client(test_db):
     app.dependency_overrides[get_db] = lambda: test_db
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as c:
         yield c
     app.dependency_overrides.clear()
 
@@ -50,10 +52,16 @@ async def test_audit_log_empty(client):
 
 @pytest.mark.asyncio
 async def test_audit_log_with_data(client, test_db):
-    test_db.add(AuditLog(
-        action="issue.assigned", owner="hiero", repo="sdk",
-        reason="Self-assigned", target_login="alice", target_number=1,
-    ))
+    test_db.add(
+        AuditLog(
+            action="issue.assigned",
+            owner="hiero",
+            repo="sdk",
+            reason="Self-assigned",
+            target_login="alice",
+            target_number=1,
+        )
+    )
     await test_db.commit()
     r = await client.get("/api/v1/audit")
     data = r.json()
@@ -64,7 +72,9 @@ async def test_audit_log_with_data(client, test_db):
 @pytest.mark.asyncio
 async def test_audit_filtered_by_owner(client, test_db):
     for owner in ["hiero", "other"]:
-        test_db.add(AuditLog(action="pr.labeled", owner=owner, repo="sdk", reason="test"))
+        test_db.add(
+            AuditLog(action="pr.labeled", owner=owner, repo="sdk", reason="test")
+        )
     await test_db.commit()
     r = await client.get("/api/v1/audit?owner=hiero")
     assert all(e["owner"] == "hiero" for e in r.json())
@@ -79,12 +89,22 @@ async def test_pr_health_empty(client):
 
 @pytest.mark.asyncio
 async def test_pr_health_with_data(client, test_db):
-    test_db.add(PRHealthScore(
-        owner="hiero", repo="sdk", pr_number=7, pr_author="bob",
-        score=82.5, has_tests=True, has_linked_issue=True,
-        has_description=True, dco_signed=True, review_count=1,
-        files_changed=3, label_applied="health: healthy",
-    ))
+    test_db.add(
+        PRHealthScore(
+            owner="hiero",
+            repo="sdk",
+            pr_number=7,
+            pr_author="bob",
+            score=82.5,
+            has_tests=True,
+            has_linked_issue=True,
+            has_description=True,
+            dco_signed=True,
+            review_count=1,
+            files_changed=3,
+            label_applied="health: healthy",
+        )
+    )
     await test_db.commit()
     r = await client.get("/api/v1/pr-health?owner=hiero")
     data = r.json()
@@ -95,12 +115,21 @@ async def test_pr_health_with_data(client, test_db):
 @pytest.mark.asyncio
 async def test_pr_health_stats(client, test_db):
     for score in [60.0, 80.0, 90.0]:
-        test_db.add(PRHealthScore(
-            owner="hiero", repo="sdk", pr_number=int(score),
-            pr_author="alice", score=score, has_tests=True,
-            has_linked_issue=True, has_description=True,
-            dco_signed=True, review_count=1, files_changed=2,
-        ))
+        test_db.add(
+            PRHealthScore(
+                owner="hiero",
+                repo="sdk",
+                pr_number=int(score),
+                pr_author="alice",
+                score=score,
+                has_tests=True,
+                has_linked_issue=True,
+                has_description=True,
+                dco_signed=True,
+                review_count=1,
+                files_changed=2,
+            )
+        )
     await test_db.commit()
     r = await client.get("/api/v1/pr-health/stats?owner=hiero&repo=sdk")
     assert r.status_code == 200
@@ -112,11 +141,18 @@ async def test_pr_health_stats(client, test_db):
 
 @pytest.mark.asyncio
 async def test_contributors_endpoint(client, test_db):
-    test_db.add(ContributorSnapshot(
-        owner="hiero", repo="sdk", login="charlie",
-        merged_prs=5, reviews_given=3, months_active=2,
-        current_role="contributor", eligible_for="junior-committer",
-    ))
+    test_db.add(
+        ContributorSnapshot(
+            owner="hiero",
+            repo="sdk",
+            login="charlie",
+            merged_prs=5,
+            reviews_given=3,
+            months_active=2,
+            current_role="contributor",
+            eligible_for="junior-committer",
+        )
+    )
     await test_db.commit()
     r = await client.get("/api/v1/contributors?owner=hiero")
     data = r.json()
@@ -126,14 +162,29 @@ async def test_contributors_endpoint(client, test_db):
 
 @pytest.mark.asyncio
 async def test_repo_stats(client, test_db):
-    test_db.add(PRHealthScore(
-        owner="hiero", repo="sdk", pr_number=1, pr_author="dave",
-        score=75.0, has_tests=True, has_linked_issue=False,
-        has_description=True, dco_signed=True, review_count=1, files_changed=2,
-    ))
-    test_db.add(AuditLog(
-        action="contributor.welcomed", owner="hiero", repo="sdk", reason="First",
-    ))
+    test_db.add(
+        PRHealthScore(
+            owner="hiero",
+            repo="sdk",
+            pr_number=1,
+            pr_author="dave",
+            score=75.0,
+            has_tests=True,
+            has_linked_issue=False,
+            has_description=True,
+            dco_signed=True,
+            review_count=1,
+            files_changed=2,
+        )
+    )
+    test_db.add(
+        AuditLog(
+            action="contributor.welcomed",
+            owner="hiero",
+            repo="sdk",
+            reason="First",
+        )
+    )
     await test_db.commit()
     r = await client.get("/api/v1/repos/stats?owner=hiero&repo=sdk")
     assert r.status_code == 200

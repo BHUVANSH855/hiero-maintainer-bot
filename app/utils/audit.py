@@ -10,11 +10,21 @@ from app.utils.logger import get_logger
 log = get_logger("audit")
 
 VALID_ACTIONS = {
-    "issue.assigned", "issue.unassigned", "issue.closed", "issue.labeled",
-    "issue.stale_marked", "pr.reviewed", "pr.health_scored", "pr.labeled",
-    "pr.closed_stale", "pr.reviewer_recommended",
-    "contributor.mentor_assigned", "contributor.role_suggested",
-    "contributor.welcomed", "workflow.skipped", "workflow.error",
+    "issue.assigned",
+    "issue.unassigned",
+    "issue.closed",
+    "issue.labeled",
+    "issue.stale_marked",
+    "pr.reviewed",
+    "pr.health_scored",
+    "pr.labeled",
+    "pr.closed_stale",
+    "pr.reviewer_recommended",
+    "contributor.mentor_assigned",
+    "contributor.role_suggested",
+    "contributor.welcomed",
+    "workflow.skipped",
+    "workflow.error",
 }
 
 
@@ -45,9 +55,13 @@ async def record(
     db.add(entry)
     await db.flush()
 
-    log.info("[audit] %s %s/%s #%s @%s — %s",
-             action, owner, repo,
-             target_number or "-",
-             target_login or "-",
-             reason)
+    log.info(
+        "[audit] %s %s/%s #%s @%s — %s",
+        action,
+        owner,
+        repo,
+        target_number or "-",
+        target_login or "-",
+        reason,
+    )
     return entry

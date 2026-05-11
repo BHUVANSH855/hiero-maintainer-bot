@@ -27,7 +27,9 @@ class IssueManagementWorkflow:
         now = datetime.now(timezone.utc)
 
         stale_cutoff = now - timedelta(days=cfg.stale_issue_days)
-        close_cutoff = now - timedelta(days=cfg.stale_issue_days + cfg.close_stale_after_days)
+        close_cutoff = now - timedelta(
+            days=cfg.stale_issue_days + cfg.close_stale_after_days
+        )
         unassign_cutoff = now - timedelta(days=cfg.auto_unassign_inactive_days)
 
         issues = await self._gh.list_issues(
@@ -47,9 +49,7 @@ class IssueManagementWorkflow:
             if any(el in labels for el in cfg.exempt_labels):
                 continue
 
-            updated = datetime.fromisoformat(
-                issue["updated_at"].replace("Z", "+00:00")
-            )
+            updated = datetime.fromisoformat(issue["updated_at"].replace("Z", "+00:00"))
             is_stale = cfg.stale_label in labels
 
             # Auto-unassign
@@ -86,7 +86,9 @@ class IssueManagementWorkflow:
         if not label_name or not issue_number:
             return
 
-        rule = next((r for r in cfg.label_escalation_rules if r.label == label_name), None)
+        rule = next(
+            (r for r in cfg.label_escalation_rules if r.label == label_name), None
+        )
         if not rule:
             return
 
@@ -95,12 +97,17 @@ class IssueManagementWorkflow:
         title = issue.get("title", "")
 
         await self._gh.post_comment(
-            owner, repo, issue_number,
+            owner,
+            repo,
+            issue_number,
             f"🔔 {mention} — issue labeled `{label_name}` requires your attention.\n\n> **{title}**",
             inst,
         )
         await audit.record(
-            ctx["db"], action="issue.labeled", owner=owner, repo=repo,
+            ctx["db"],
+            action="issue.labeled",
+            owner=owner,
+            repo=repo,
             target_number=issue_number,
             reason=f"Label escalation: {label_name} → {rule.notify_team}",
             metadata={"label": label_name, "team": rule.notify_team},
@@ -115,7 +122,9 @@ class IssueManagementWorkflow:
 
         await self._gh.add_label(owner, repo, number, stale_label, inst)
         await self._gh.post_comment(
-            owner, repo, number,
+            owner,
+            repo,
+            number,
             f"⚠️ This issue has been marked **stale** due to inactivity.\n\n"
             f"If it's still relevant please comment to keep it open. "
             f"Remove the `{stale_label}` label to exempt it permanently.",
@@ -124,8 +133,12 @@ class IssueManagementWorkflow:
 
         await self._log_stale(ctx, number, "marked_stale")
         await audit.record(
-            ctx["db"], action="issue.stale_marked", owner=owner, repo=repo,
-            target_number=number, reason="No activity within stale period",
+            ctx["db"],
+            action="issue.stale_marked",
+            owner=owner,
+            repo=repo,
+            target_number=number,
+            reason="No activity within stale period",
         )
 
     async def _close_stale(self, ctx: dict, issue: dict) -> None:
@@ -133,7 +146,9 @@ class IssueManagementWorkflow:
         number = issue["number"]
 
         await self._gh.post_comment(
-            owner, repo, number,
+            owner,
+            repo,
+            number,
             "🔒 This issue has been **automatically closed** due to continued inactivity.\n\n"
             "Feel free to re-open if still relevant.",
             inst,
@@ -141,18 +156,26 @@ class IssueManagementWorkflow:
         await self._gh.close_issue(owner, repo, number, inst)
         await self._log_stale(ctx, number, "closed")
         await audit.record(
-            ctx["db"], action="issue.closed", owner=owner, repo=repo,
-            target_number=number, reason="Closed after stale period expired",
+            ctx["db"],
+            action="issue.closed",
+            owner=owner,
+            repo=repo,
+            target_number=number,
+            reason="Closed after stale period expired",
         )
 
-    async def _unassign_inactive(self, ctx: dict, issue: dict, assignees: list[str]) -> None:
+    async def _unassign_inactive(
+        self, ctx: dict, issue: dict, assignees: list[str]
+    ) -> None:
         owner, repo, inst = ctx["owner"], ctx["repo"], ctx["installation_id"]
         number = issue["number"]
         mentions = " ".join(f"@{a}" for a in assignees)
 
         await self._gh.remove_assignees(owner, repo, number, assignees, inst)
         await self._gh.post_comment(
-            owner, repo, number,
+            owner,
+            repo,
+            number,
             f"⏰ {mentions} — auto-unassigned due to inactivity. "
             f"Re-assign yourself with `/assign` if you're still working on this!",
             inst,
@@ -160,8 +183,12 @@ class IssueManagementWorkflow:
         await self._log_stale(ctx, number, "unassigned")
         for login in assignees:
             await audit.record(
-                ctx["db"], action="issue.unassigned", owner=owner, repo=repo,
-                target_number=number, target_login=login,
+                ctx["db"],
+                action="issue.unassigned",
+                owner=owner,
+                repo=repo,
+                target_number=number,
+                target_login=login,
                 reason="Auto-unassigned due to inactivity",
             )
 

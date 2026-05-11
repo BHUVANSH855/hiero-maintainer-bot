@@ -11,7 +11,8 @@ MentorStrategy = Literal["round-robin", "least-busy", "expertise-match"]
 Verdict = Literal["approve", "request_changes", "comment"]
 
 
-#  Role requirements 
+#  Role requirements
+
 
 class RoleRequirements(BaseModel):
     min_merged_prs: int = Field(ge=0)
@@ -20,7 +21,8 @@ class RoleRequirements(BaseModel):
     require_endorsement_from: RoleLevel
 
 
-#  Onboarding 
+#  Onboarding
+
 
 class OnboardingConfig(BaseModel):
     enabled: bool = True
@@ -35,6 +37,7 @@ class OnboardingConfig(BaseModel):
 
 
 #  Pull Request
+
 
 class AIReviewConfig(BaseModel):
     enabled: bool = False
@@ -66,32 +69,40 @@ class PullRequestConfig(BaseModel):
 
 #  Progression
 
+
 class ProgressionConfig(BaseModel):
     enabled: bool = True
     recommend_issues_after_merge: bool = True
     recommendation_count: int = Field(default=3, ge=1, le=10)
     requirements_for_junior_committer: RoleRequirements = Field(
         default_factory=lambda: RoleRequirements(
-            min_merged_prs=3, min_reviews_given=2, min_months_active=1,
-            require_endorsement_from="committer"
+            min_merged_prs=3,
+            min_reviews_given=2,
+            min_months_active=1,
+            require_endorsement_from="committer",
         )
     )
     requirements_for_committer: RoleRequirements = Field(
         default_factory=lambda: RoleRequirements(
-            min_merged_prs=15, min_reviews_given=10, min_months_active=6,
-            require_endorsement_from="maintainer"
+            min_merged_prs=15,
+            min_reviews_given=10,
+            min_months_active=6,
+            require_endorsement_from="maintainer",
         )
     )
     requirements_for_maintainer: RoleRequirements = Field(
         default_factory=lambda: RoleRequirements(
-            min_merged_prs=50, min_reviews_given=30, min_months_active=12,
-            require_endorsement_from="maintainer"
+            min_merged_prs=50,
+            min_reviews_given=30,
+            min_months_active=12,
+            require_endorsement_from="maintainer",
         )
     )
     celebrate_milestones: bool = True
 
 
-# Issue Management 
+# Issue Management
+
 
 class LabelEscalationRule(BaseModel):
     label: str
@@ -110,9 +121,10 @@ class IssueManagementConfig(BaseModel):
     create_good_first_issues: bool = False
 
 
-#  PR Health 
+#  PR Health
 
-class PRHealthConfig(BaseModel):          # NEW workflow
+
+class PRHealthConfig(BaseModel):  # NEW workflow
     enabled: bool = True
     score_weights: dict[str, float] = {
         "has_tests": 0.25,
@@ -122,11 +134,14 @@ class PRHealthConfig(BaseModel):          # NEW workflow
         "review_count": 0.15,
         "small_diff": 0.10,
     }
-    comment_threshold: int = Field(default=60, ge=0, le=100)   # only comment if score < threshold
+    comment_threshold: int = Field(
+        default=60, ge=0, le=100
+    )  # only comment if score < threshold
     label_healthy_above: int = Field(default=75, ge=0, le=100)
 
 
-# Teams & Labels 
+# Teams & Labels
+
 
 class TeamsConfig(BaseModel):
     maintainers: str = "maintainers"
@@ -141,13 +156,16 @@ class DifficultyLabels(BaseModel):
     advanced: str = "advanced"
 
 
-#  Root 
+#  Root
+
 
 class WorkflowsConfig(BaseModel):
     onboarding: OnboardingConfig = Field(default_factory=OnboardingConfig)
     pull_request: PullRequestConfig = Field(default_factory=PullRequestConfig)
     progression: ProgressionConfig = Field(default_factory=ProgressionConfig)
-    issue_management: IssueManagementConfig = Field(default_factory=IssueManagementConfig)
+    issue_management: IssueManagementConfig = Field(
+        default_factory=IssueManagementConfig
+    )
     pr_health: PRHealthConfig = Field(default_factory=PRHealthConfig)
 
 
@@ -161,5 +179,7 @@ class RepoConfig(BaseModel):
     def validate_stale_order(self) -> "RepoConfig":
         im = self.workflows.issue_management
         if im.close_stale_after_days >= im.stale_issue_days:
-            raise ValueError("close_stale_after_days must be less than stale_issue_days")
+            raise ValueError(
+                "close_stale_after_days must be less than stale_issue_days"
+            )
         return self
