@@ -14,9 +14,10 @@ log = get_logger("config.loader")
 _CONFIG_PATH = ".github/hiero-bot.yml"
 _CACHE_TTL = 300  # 5 minutes
 
+from typing import Any
 
 class ConfigLoader:
-    def __init__(self, github_client: "GitHubClient") -> None:  # type: ignore[name-defined]
+    def __init__(self, github_client: Any) -> None:
         self._client = github_client
         self._cache: dict[str, tuple[RepoConfig, float]] = {}
 
