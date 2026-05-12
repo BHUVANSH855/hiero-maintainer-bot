@@ -53,7 +53,11 @@ class WebhookRouter:
         repo = repo_data["name"]
         installation_id = installation_data["id"]
 
-        config = await self._config_loader.load(owner, repo)
+        config = await self._config_loader.load(
+            owner,
+            repo,
+            installation_id,
+        )
         if config is None:
             log.debug("No config for %s/%s — skipping", owner, repo)
             return {"ok": True, "skipped": "no config"}
