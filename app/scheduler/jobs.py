@@ -39,7 +39,11 @@ class BotScheduler:
         log.info("Scheduler started")
 
     def shutdown(self) -> None:
-        self._scheduler.shutdown(wait=False)
+        try:
+            if self._scheduler.running:
+                self._scheduler.shutdown(wait=False)
+        except Exception as exc:
+            log.warning("Scheduler shutdown warning: %s", exc)
 
     async def _run_stale_scan(self) -> None:
         log.info("Starting scheduled stale scan")
