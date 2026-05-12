@@ -56,8 +56,6 @@ class GitHubClient:
             f"/app/installations/{installation_id}/access_tokens",
             headers={"Authorization": f"Bearer {self._make_jwt()}"},
         )
-        print("Installation token status:", resp.status_code)
-        print("Installation token response:", resp.text)
         resp.raise_for_status()
         data = resp.json()
         token = data["token"]
