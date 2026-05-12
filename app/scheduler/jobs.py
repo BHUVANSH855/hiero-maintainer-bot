@@ -64,7 +64,11 @@ class BotScheduler:
                 owner, repo = full_name.split("/", 1)
 
                 try:
-                    config = await self._config_loader.load(owner, repo)
+                    config = await self._config_loader.load(
+                        owner,
+                        repo,
+                        inst_id,
+                    )
                     if not config or not config.workflows.issue_management.enabled:
                         continue
 
