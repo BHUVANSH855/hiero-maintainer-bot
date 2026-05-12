@@ -1,12 +1,16 @@
 # app/github/client.py — Async GitHub API client
 
 from __future__ import annotations
+
 import time
-import jwt
-import httpx
+from pathlib import Path
 from typing import Any, Optional
-from app.utils.settings import settings
+
+import httpx
+import jwt
+
 from app.utils.logger import get_logger
+from app.utils.settings import settings
 
 log = get_logger("github.client")
 
@@ -32,13 +36,15 @@ class GitHubClient:
     def _make_jwt(self) -> str:
         now = int(time.time())
         payload = {"iat": now - 60, "exp": now + 600, "iss": settings.github_app_id}
-        raw = settings.github_private_key
-        private_key = raw.replace("\\n", "\n").strip()
-        if "\n" not in private_key and "BEGIN" in private_key:
-            header = "-----BEGIN RSA PRIVATE KEY-----"
-            footer = "-----END RSA PRIVATE KEY-----"
-            body = private_key.replace(header, "").replace(footer, "").strip()
-            private_key = header + "\n" + body + "\n" + footer
+        private_key_path = Path(settings.github_private_key_path)
+
+        if not private_key_path.exists():
+            raise FileNotFoundError(
+                f"GitHub private key file not found: {private_key_path}"
+            )
+
+        private_key = private_key_path.read_text(encoding="utf-8").strip()
+
         return jwt.encode(payload, private_key, algorithm="RS256")
 
     async def _installation_token(self, installation_id: int) -> str:

@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     # GitHub App
     github_app_id: str = ""
     github_private_key: str = ""
+    github_private_key_path: str = ""
     github_webhook_secret: str = ""
 
     # Anthropic
