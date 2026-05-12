@@ -50,6 +50,8 @@ class GitHubClient:
             f"/app/installations/{installation_id}/access_tokens",
             headers={"Authorization": f"Bearer {self._make_jwt()}"},
         )
+        print("Installation token status:", resp.status_code)
+        print("Installation token response:", resp.text)
         resp.raise_for_status()
         data = resp.json()
         token = data["token"]
@@ -98,27 +100,27 @@ class GitHubClient:
     #  High-level helpers
 
     async def get_file_content(
-        self, owner: str, repo: str, path: str, installation_id: int = 0
+        self, owner: str, repo: str, path: str, installation_id: int
     ) -> Optional[str]:
         """Returns base64-encoded file content or None if not found."""
         try:
-            if installation_id:
-                data = await self.get(
-                    f"/repos/{owner}/{repo}/contents/{path}", installation_id
-                )
-            else:
-                resp = await self._http.get(
-                    f"/repos/{owner}/{repo}/contents/{path}",
-                    headers=self._app_headers(),
-                )
-                if resp.status_code == 404:
-                    return None
-                resp.raise_for_status()
-                data = resp.json()
+            data = await self.get(
+                f"/repos/{owner}/{repo}/contents/{path}",
+                installation_id,
+            )
             return data.get("content")
+
         except httpx.HTTPStatusError as e:
             if e.response.status_code == 404:
                 return None
+
+            log.error(
+                "GitHub API error while reading %s/%s/%s: %s",
+                owner,
+                repo,
+                path,
+                e,
+            )
             raise
 
     async def post_comment(

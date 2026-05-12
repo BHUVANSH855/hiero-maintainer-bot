@@ -21,7 +21,7 @@ class ConfigLoader:
         self._cache: dict[str, tuple[RepoConfig, float]] = {}
 
     async def load(
-        self, owner: str, repo: str, installation_id: int = 0
+        self, owner: str, repo: str, installation_id: int
     ) -> Optional[RepoConfig]:
         """Load config, using cache if fresh. Returns None if no config file."""
         key = f"{owner}/{repo}"
