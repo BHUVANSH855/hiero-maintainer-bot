@@ -120,6 +120,17 @@ class WebhookRouter:
         wf_issue = IssueManagementWorkflow(self._gh)
 
         if action == "opened":
+            issue_number = (payload.get("issue") or {}).get("number")
+
+            if issue_number:
+                await self._gh.post_comment(
+                    ctx["owner"],
+                    ctx["repo"],
+                    issue_number,
+                    "👋 Hiero Bot is active and received this issue successfully.",
+                    ctx["installation_id"],
+                )
+
             await wf_onboard.handle_new_contributor(ctx, payload)
         elif action == "labeled":
             await wf_issue.handle_label_escalation(ctx, payload)
